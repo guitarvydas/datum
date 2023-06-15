@@ -8,14 +8,13 @@ Datum :: struct {
     data : rawptr,
     len : int,
     clone : #type proc (self: Datum) -> Datum,
-    reclaim : #type proc (pself: ^Datum),
+    reclaim : #type proc (pself: Datum),
     repr: #type proc (self: Datum) -> string,
     reflection: string
 }
 
 clone_datum :: proc (self: Datum) -> Datum {
     d := new (Datum)
-    fmt.println ("clone new d", &d, d)
     new_data, _ := mem.alloc (self.len)
     mem.copy (new_data, self.data, self.len)
     d.data = new_data
@@ -23,14 +22,22 @@ clone_datum :: proc (self: Datum) -> Datum {
     d.clone = clone_datum
     d.reclaim = reclaim_datum
     d.repr = self.repr
-    d.reflection = self.reflection
+    d.reflection = strings.clone (self.reflection)
     return d^
 }
 
-reclaim_datum :: proc (pself: ^Datum) {
-  free (pself)
+reclaim_datum :: proc (self: Datum) {
+    free (self.data)
+    reclaim_reflection (self)
 }
 
+reclaim_reflection :: proc (self: Datum) {
+    // this POC uses strings in the reflection field
+    // later, we might want to beef up what .reflection contains
+    // so we provide this proc to clean that up, whatever it will be
+    delete_string (self.reflection)
+}
+    
 create_datum :: proc (p : rawptr, len : int, rep : (#type proc (Datum) -> string), info: string) -> Datum {
     d := new (Datum)
     d.data, _ = mem.alloc (len)
@@ -39,8 +46,7 @@ create_datum :: proc (p : rawptr, len : int, rep : (#type proc (Datum) -> string
     d.clone = clone_datum
     d.reclaim = reclaim_datum
     d.repr = rep
-    d.reflection = info
-    fmt.println ("create_datum", p, len, d)
+    d.reflection = strings.clone (info)
     return d^
 }
 

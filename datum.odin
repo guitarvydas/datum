@@ -5,7 +5,7 @@ import "core:strings"
 import "core:fmt"
 
 Datum :: struct {
-    data : rawptr,
+    ptr : rawptr,
     len : int,
     clone : #type proc (self: Datum) -> Datum,
     reclaim : #type proc (pself: Datum),
@@ -15,9 +15,9 @@ Datum :: struct {
 
 clone_datum :: proc (self: Datum) -> Datum {
     d := new (Datum)
-    new_data, _ := mem.alloc (self.len)
-    mem.copy (new_data, self.data, self.len)
-    d.data = new_data
+    new_ptr, _ := mem.alloc (self.len)
+    mem.copy (new_ptr, self.ptr, self.len)
+    d.ptr = new_ptr
     d.len = self.len
     d.clone = clone_datum
     d.reclaim = reclaim_datum
@@ -27,8 +27,12 @@ clone_datum :: proc (self: Datum) -> Datum {
 }
 
 reclaim_datum :: proc (self: Datum) {
-    free (self.data)
+    free (self.ptr)
     reclaim_reflection (self)
+}
+
+clone_reflection :: proc (refl : string) -> string {
+  return strings.clone (refl)
 }
 
 reclaim_reflection :: proc (self: Datum) {
@@ -40,8 +44,8 @@ reclaim_reflection :: proc (self: Datum) {
     
 create_datum :: proc (p : rawptr, len : int, rep : (#type proc (Datum) -> string), info: string) -> Datum {
     d := new (Datum)
-    d.data, _ = mem.alloc (len)
-    mem.copy (d.data, p, len)
+    d.ptr, _ = mem.alloc (len)
+    mem.copy (d.ptr, p, len)
     d.len = len
     d.clone = clone_datum
     d.reclaim = reclaim_datum
@@ -51,7 +55,15 @@ create_datum :: proc (p : rawptr, len : int, rep : (#type proc (Datum) -> string
 }
 
 datum_to_string :: proc (d : Datum) -> string {
-    return strings.string_from_ptr (transmute(^u8)d.data, d.len)
+    return strings.string_from_ptr (transmute(^u8)d.ptr, d.len)
+}
+
+str :: proc (s : string) -> Datum {
+    repr_string :: proc (sd : Datum) -> string {
+        return fmt.aprint (strings.string_from_ptr (transmute(^u8)sd.ptr, sd.len))
+    }
+    d := create_datum (raw_data (s), len (s), repr_string, "string")
+    return d
 }
 
 

@@ -3,6 +3,7 @@ package datum
 import "core:mem"
 import "core:strings"
 import "core:fmt"
+import "core:log"
 
 Datum :: struct {
     ptr : rawptr,
@@ -27,7 +28,7 @@ clone_datum :: proc (self: Datum) -> Datum {
 }
 
 reclaim_datum :: proc (self: Datum) {
-    free (self.ptr)
+    mem.free_with_size (self.ptr, self.len)
     reclaim_reflection (self)
 }
 

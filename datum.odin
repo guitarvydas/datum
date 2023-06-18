@@ -2,6 +2,7 @@ package datum
 
 import "core:mem"
 import "core:strings"
+import "core:slice"
 import "core:fmt"
 import "core:log"
 
@@ -69,3 +70,8 @@ str :: proc (s : string) -> Datum {
 
 
 
+bytes :: proc (d : Datum) -> [dynamic]byte {
+    fixedbytes := slice.bytes_from_ptr (d.ptr, d.len)
+    bytes := slice.into_dynamic (fixedbytes)
+    return bytes
+}
